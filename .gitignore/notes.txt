@@ -1,0 +1,2071 @@
+
+HAMISH RISKY MARKETS
+
+NRL MARKETS
+
+* H2H
+* HT/FT
+* Lines
+* Overs / Unders (Totals)
+* Anytime Try Scorer (ATS)
+
+
+
+
+const puppeteer = require("puppeteer");
+const database = require("./info.js");
+
+async function run() {
+  // launches browser programmatically
+  const browser = await puppeteer.launch();
+  // initialises page variable (opens up new page)
+  const page = await browser.newPage();
+  // to go to specific page
+  await page.goto(
+    `https://www.nrl.com/stats/teams/?competition=111&season=2023&stat=${database.dataset_2023[0].API_endpoint}`
+  );
+
+  // get the entire html of a page
+  const html = await page.content();
+  // console.log(html);
+
+  // const title = await page.evaluate(() => document.title);
+  // console.log(title);
+  // get all the text on the page
+  // const text = await page.evaluate(() => document.body.innerText);
+  // console.log(text);
+  // all the links on a page
+  const links = await page.evaluate(() =>
+    Array.from(document.querySelectorAll("a"), (e) => e.href)
+  );
+  console.log(links);
+  // we can create screenshot (pass in an object with a pass of where we want the screenshot to go)
+  // await page.screenshot({ path: "example.png", fullPage: true });
+
+  // can also create a pdf
+  // await page.pdf({ path: "example.pdf", format: "A4" });
+
+  // closes the browser
+  await browser.close();
+}
+
+run();
+
+
+-------------------
+// Retrieves data directly from the NRL website
+
+const puppeteer = require("puppeteer");
+const database = require("./data.js");
+
+async function getData() {
+  for (const elm of database.dataset_2023) {
+    elm.data = [...(await ExtractingData(elm.API_endpoint))];
+  }
+
+  database.dataset_2023.forEach((elm) => console.log(elm));
+}
+async function ExtractingData(API_endpoint) {
+  // launches browser programmatically
+  const browser = await puppeteer.launch();
+  // initialises page variable (opens up new page)
+  const page = await browser.newPage();
+  // to go to specific page
+  await page.goto(
+    `https://www.nrl.com/stats/teams/?competition=111&season=2023&stat=${API_endpoint}`
+  );
+
+  const avgToggleXpath =
+    "//div[@class='toggle-group o-shadowed-ui-control u-display-inline-flex']/button[2]";
+  await page.waitForXPath(avgToggleXpath);
+  const avgToggleBtn = await page.$x(avgToggleXpath);
+  await avgToggleBtn[0].click();
+
+  const data = await page.evaluate(() =>
+    Array.from(document.querySelectorAll(".table-tbody__tr"), (e) => ({
+      team_name: e.querySelector("td a span").innerText,
+      stat: e.querySelectorAll("td")[4].innerText,
+    }))
+  );
+
+  // closes the browser
+  await browser.close();
+
+  return data.slice(0, 17);
+}
+
+// ExtractingData();
+
+getData();
+
+
+????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????
+
+
+// Retrieves data directly from the NRL website
+
+const puppeteer = require("puppeteer");
+const fs = require("fs");
+const database = require("./drawsData.js");
+
+process.setMaxListeners(100);
+
+// Dataset object that contains all the data points
+//intended to be extracted for a specific game
+class Dataset {
+  constructor() {
+    this.conditions = "";
+    this.homeTeam = "";
+    this.homeTeam_FT_score = "";
+    this.homeTeam_HT_score = "";
+    this.homeTeam_tryscorers = [];
+    this.homeTeam_possession = "";
+    this.homeTeam_completionRate = "";
+    this.homeTeam_allRuns = "";
+    this.homeTeam_allRunMetres = "";
+    this.homeTeam_postContactMetres = "";
+    this.homeTeam_linebreaks = "";
+    this.homeTeam_tacklebreaks = "";
+    this.homeTeam_avgSetDist = "";
+    this.homeTeam_kickReturnMetres = "";
+    this.homeTeam_offloads = "";
+    this.homeTeam_receipts = "";
+    this.homeTeam_totalPasses = "";
+    this.homeTeam_dummyPasses = "";
+    this.homeTeam_kicks = "";
+    this.homeTeam_kickingMetres = "";
+    this.homeTeam_forcedDropouts = "";
+    this.homeTeam_avgPTBSpeed = "";
+    this.homeTeam_tackleEfficieny = "";
+    this.homeTeam_tacklesMade = "";
+    this.homeTeam_missedTackles = "";
+    this.homeTeam_intercepts = "";
+    this.homeTeam_ineffectiveTackles = "";
+    this.homeTeam_errors = "";
+    this.homeTeam_penaltiesConceded = "";
+    this.awayTeam = "";
+    this.awayTeam_FT_score = "";
+    this.awayTeam_HT_score = "";
+    this.awayTeam_tryscorers = [];
+    this.awayTeam_possession = "";
+    this.awayTeam_completionRate = "";
+    this.awayTeam_allRuns = "";
+    this.awayTeam_allRunMetres = "";
+    this.awayTeam_postContactMetres = "";
+    this.awayTeam_linebreaks = "";
+    this.awayTeam_tacklebreaks = "";
+    this.awayTeam_avgSetDist = "";
+    this.awayTeam_kickReturnMetres = "";
+    this.awayTeam_offloads = "";
+    this.awayTeam_receipts = "";
+    this.awayTeam_totalPasses = "";
+    this.awayTeam_total_passes = "";
+    this.awayTeam_dummyPasses = "";
+    this.awayTeam_kicks = "";
+    this.awayTeam_kickingMetres = "";
+    this.awayTeam_forcedDropouts = "";
+    this.awayTeam_avgPTBSpeed = "";
+    this.awayTeam_tackleEfficieny = "";
+    this.awayTeam_tacklesMade = "";
+    this.awayTeam_missedTackles = "";
+    this.homeTeam_intercepts = "";
+    this.awayTeam_ineffectiveTackles = "";
+    this.awayTeam_errors = "";
+    this.awayTeam_penaltiesConceded = "";
+  }
+}
+
+async function getData() {
+  const gameData = JSON.parse(database.dataJSON);
+  for (const season of gameData) {
+    // iterates through each element of the gameData array
+    for (let round of season.rounds) {
+      // iterates through each round of the "season" block
+      round = ExtractingData(round.round, season.year);
+    }
+  }
+
+  fs.writeFile("./historicalDrawData.json", JSON.stringify(gameData), (err) => {
+    if (err) {
+      console.log(err);
+    } else {
+      console.log("Historical draw data successfully transferred");
+    }
+  });
+}
+
+async function ExtractingData(round, season) {
+  // launches broswer and findw webpage of specific round and season
+  const browser = await puppeteer.launch();
+  const page = await browser.newPage();
+  await page.goto(
+    `https://www.nrl.com/draw/?competition=111&round=${round}&season=${season}`
+  );
+
+  // finds the number of games in the specific round
+  const numGames = await page.evaluate(() => {
+    const stuff = document.querySelectorAll("#draw-content section");
+    console.log(stuff);
+    return [...stuff].slice(0, stuff.length - 1).length;
+  });
+
+  // populates the "roundMatchups" array with string elements that
+  // contains the teams in the matchup
+  const roundMatchups = [];
+  for (let i = 1; i <= numGames; i++) {
+    await page.waitForXPath(
+      `//div[@id='draw-content']/section[${i}]/ul/li/div/div/h3`
+    );
+    roundMatchups.push(
+      await page
+        .$x(`//div[@id='draw-content']/section[${i}]/ul/li/div/div/h3`)
+        .then((temp) => temp[0].evaluate((e) => e.innerText))
+    );
+  }
+
+  await browser.close();
+  // transforms "roundMatchups" array to contain all relevant data for the games in the round
+  roundMatchups.map(async (matchup) => {
+    // parses the matchup string to isolate the two team substring and assigns them to
+    // a the homeTeam and awayTeam variables respectively
+    [homeTeam, awayTeam] = parseTeams(matchup);
+    // get's the all the data points for this specific matchup
+    return await getGameData(round, season, homeTeam, awayTeam);
+  });
+
+  console.log(roundMatchups);
+
+  return roundMatchups;
+}
+
+function parseTeams(matchupStr) {
+  // Regular expression that will isolate the teams' substrings
+  const regEx = /^Match:\s(?<homeTeam>[\w\s]+)\svs\s(?<awayTeam>[\w\s]+)$/;
+  const { homeTeam, awayTeam } = matchupStr.match(regEx).groups;
+  return [homeTeam, awayTeam];
+}
+
+async function getGameData(round, season, homeTeam, awayTeam) {
+  // Launches broswer and findw webpage of specific round and season
+  const browser = await puppeteer.launch();
+  const page = await browser.newPage();
+  await page.goto(
+    `https://www.nrl.com/draw/nrl-premiership/${season}/round-${round}/${homeTeam}-v-${awayTeam}/`
+  );
+  // Creates a new instance of the "Dataset" object
+  // (contains the keys for all the data points to be extracted)
+  const game = new Dataset();
+
+  game.homeTeam = homeTeam;
+  game.awayTeam = awayTeam;
+
+  // Retrieves the full/half time scores, ground conditions and try scorers data for both teams
+  [
+    game.homeTeam_FT_score,
+    game.awayTeam_FT_score,
+    game.conditions,
+    game.homeTeam_tryscorers,
+    game.awayTeam_tryscorers,
+    game.homeTeam_HT_score,
+    game.awayTeam_HT_score,
+  ] = await page.evaluate(() => {
+    const HFTS = document
+      .querySelector(".match-team__score--home")
+      .innerText.split("\n")[1];
+    const AFTS = document
+      .querySelector(".match-team__score--away")
+      .innerText.split("\n")[1];
+    const COND = document.querySelector(".match-weather__text span").innerText;
+    const tries = document
+      .querySelector(".match-centre-summary-group")
+      .lastChild.querySelectorAll("ul");
+    const HTS = tries[0].innerText.split("\n");
+    const ATS = tries[1].innerText.split("\n");
+    const halftime = document
+      .querySelectorAll(".match-centre-summary-group")[4]
+      .querySelectorAll("h3 span");
+    const HHTS = halftime[1].innerText;
+    const AHTS = halftime[4].innerText;
+    return [HFTS, AFTS, COND, HTS, ATS, HHTS, AHTS];
+  });
+
+  const dataOptionsXpath =
+    "//div[@class='tabs__trigger-scroller tabs__list-container u-hide-scrollbar u-momentum-scrolling u-scroll-behaviour-smooth o-rounded-box o-rounded-box--sharp-until-600 o-shadowed-ui-control']/ul/li[4]/a";
+  await page.waitForXPath(dataOptionsXpath);
+  const dataOptionsBtn = await page.$x(dataOptionsXpath);
+  await dataOptionsBtn[0].click();
+
+  // Retrieves the possession / completion rates data for both teams
+  await page.waitForXPath("//div[@class='u-spacing-mb-24']/div/div/div/div/p");
+  game.homeTeam_possession = await page
+    .$x("//div[@class='u-spacing-mb-24']/div/div/div/div/p")
+    .then((HPoss) => HPoss[0].evaluate((e) => e.innerText.split("%")[0]));
+
+  await page.waitForXPath(
+    "//div[@class='u-spacing-mb-24']/div/div/div/div/p[2]"
+  );
+  game.awayTeam_possession = await page
+    .$x("//div[@class='u-spacing-mb-24']/div/div/div/div/p[2]")
+    .then((APoss) => APoss[0].evaluate((e) => e.innerText.split("%")[0]));
+
+  await page.waitForXPath(
+    "//div[@class='u-spacing-pb-24 u-spacing-pt-16 u-width-100'][3]/div/div/figure/figcaption/p/span[2]/span"
+  );
+  game.homeTeam_completionRate = await page
+    .$x(
+      "//div[@class='u-spacing-pb-24 u-spacing-pt-16 u-width-100'][3]/div/div/figure/figcaption/p/span[2]/span"
+    )
+    .then((HCompl) => HCompl[0].evaluate((e) => e.innerText.split("%")[0]));
+
+  await page.waitForXPath(
+    "//div[@class='u-spacing-pb-24 u-spacing-pt-16 u-width-100'][3]/div/div[2]/figure/figcaption/p/span[2]/span"
+  );
+  game.awayTeam_completionRate = await page
+    .$x(
+      "//div[@class='u-spacing-pb-24 u-spacing-pt-16 u-width-100'][3]/div/div[2]/figure/figcaption/p/span[2]/span"
+    )
+    .then((ACompl) => ACompl[0].evaluate((e) => e.innerText.split("%")[0]));
+
+  // Retrieves the all runs, all run metres, post contact metres, linebreaks, tacklebreaks,
+  // average set distance and kick return metres data for both teams
+  const offsenseStats = [];
+  for (let i = 1; i <= 7; i++) {
+    offsenseStats.push([
+      await page
+        .$x(
+          `//div[@id='tabs-match-centre-']/div[6]/section/div/div/div[2]/div/div[${i}]/figure/dl/div/dd`
+        )
+        .then((temp) => temp[0].evaluate((e) => e.innerText)),
+      await page
+        .$x(
+          `//div[@id='tabs-match-centre-']/div[6]/section/div/div/div[2]/div/div[${i}]/figure/dl/div[3]/dd`
+        )
+        .then((temp) => temp[0].evaluate((e) => e.innerText)),
+    ]);
+  }
+
+  [
+    [game.homeTeam_allRuns, game.awayTeam_allRuns],
+    [game.homeTeam_allRunMetres, game.awayTeam_allRunMetres],
+    [game.homeTeam_postContactMetres, game.awayTeam_postContactMetres],
+    [game.homeTeam_linebreaks, game.awayTeam_linebreaks],
+    [game.homeTeam_tacklebreaks, game.awayTeam_tacklebreaks],
+    [game.homeTeam_avgSetDist, game.awayTeam_avgSetDist],
+    [game.homeTeam_kickReturnMetres, game.awayTeam_kickReturnMetres],
+  ] = offsenseStats;
+
+  game.homeTeam_avgPTBSpeed = await page
+    .$x(
+      "//div[@id='tabs-match-centre-']/div[6]/section/div/div/div[2]/div/div[8]/div/div/figure/figcaption/p/span[2]/span"
+    )
+    .then((temp) => temp[0].evaluate((e) => e.innerText));
+
+  game.awayTeam_avgPTBSpeed = await page
+    .$x(
+      "//div[@id='tabs-match-centre-']/div[6]/section/div/div/div[2]/div/div[8]/div/div[2]/figure/figcaption/p/span[2]/span"
+    )
+    .then((temp) => temp[0].evaluate((e) => e.innerText));
+
+  // Retrieves the offloads, receipts, total passes and dummy passes data for both teams
+  const passingStats = [];
+  for (let i = 1; i <= 4; i++) {
+    passingStats.push([
+      await page
+        .$x(
+          `//div[@id='tabs-match-centre-']/div[6]/section/div/div/div[3]/div/div[${i}]/figure/dl/div/dd`
+        )
+        .then((temp) => temp[0].evaluate((e) => e.innerText)),
+      await page
+        .$x(
+          `//div[@id='tabs-match-centre-']/div[6]/section/div/div/div[3]/div/div[${i}]/figure/dl/div[3]/dd`
+        )
+        .then((temp) => temp[0].evaluate((e) => e.innerText)),
+    ]);
+  }
+
+  [
+    [game.homeTeam_offloads, game.awayTeam_offloads],
+    [game.homeTeam_receipts, game.awayTeam_receipts],
+    [game.homeTeam_totalPasses, game.awayTeam_totalPasses],
+    [game.homeTeam_dummyPasses, game.awayTeam_dummyPasses],
+  ] = passingStats;
+
+  // Retrieves the kicks, kicking metres and forced dropouts data for both teams
+  const kickingStats = [];
+  for (let i = 1; i <= 3; i++) {
+    kickingStats.push([
+      await page
+        .$x(
+          `//div[@id='tabs-match-centre-']/div[6]/section/div/div/div[4]/div/div[${i}]/figure/dl/div/dd`
+        )
+        .then((temp) => temp[0].evaluate((e) => e.innerText)),
+      await page
+        .$x(
+          `//div[@id='tabs-match-centre-']/div[6]/section/div/div/div[4]/div/div[${i}]/figure/dl/div[3]/dd`
+        )
+        .then((temp) => temp[0].evaluate((e) => e.innerText)),
+    ]);
+  }
+
+  [
+    [game.homeTeam_kicks, game.awayTeam_kicks],
+    [game.homeTeam_kickingMetres, game.awayTeam_kickingMetres],
+    [game.homeTeam_forcedDropouts, game.awayTeam_forcedDropouts],
+  ] = kickingStats;
+
+  // Retrieves the tackles made, missed tackles, intercepts, ineffective tackles data for both teams
+  game.homeTeam_tackleEfficieny = await page
+    .$x(
+      "//div[@id='tabs-match-centre-']/div[6]/section/div/div/div[5]/div/div[1]/div/div/figure/figcaption/p/span/span"
+    )
+    .then((temp) => temp[0].evaluate((e) => e.innerText));
+
+  game.awayTeam_tackleEfficieny = await page
+    .$x(
+      "//div[@id='tabs-match-centre-']/div[6]/section/div/div/div[5]/div/div[1]/div/div[2]/figure/figcaption/p/span/span"
+    )
+    .then((temp) => temp[0].evaluate((e) => e.innerText));
+
+  const defensiveStats = [];
+  for (let i = 2; i <= 5; i++) {
+    defensiveStats.push([
+      await page
+        .$x(
+          `//div[@id='tabs-match-centre-']/div[6]/section/div/div/div[5]/div/div[${i}]/figure/dl/div/dd`
+        )
+        .then((temp) => temp[0].evaluate((e) => e.innerText)),
+      await page
+        .$x(
+          `//div[@id='tabs-match-centre-']/div[6]/section/div/div/div[5]/div/div[${i}]/figure/dl/div[3]/dd`
+        )
+        .then((temp) => temp[0].evaluate((e) => e.innerText)),
+    ]);
+  }
+
+  [
+    [game.homeTeam_tacklesMade, game.awayTeam_tacklesMade],
+    [game.homeTeam_missedTackles, game.awayTeam_missedTackles],
+    [game.homeTeam_intercepts, game.awayTeam_intercepts],
+    [game.homeTeam_ineffectiveTackles, game.awayTeam_ineffectiveTackles],
+  ] = defensiveStats;
+
+  // Retrieves the error and penalties conceded data for both teams
+  const NegativePlayStats = [];
+  for (let i = 1; i <= 2; i++) {
+    NegativePlayStats.push([
+      await page
+        .$x(
+          `//div[@id='tabs-match-centre-']/div[6]/section/div/div/div[6]/div/div[${i}]/figure/dl/div/dd`
+        )
+        .then((temp) => temp[0].evaluate((e) => e.innerText)),
+      await page
+        .$x(
+          `//div[@id='tabs-match-centre-']/div[6]/section/div/div/div[6]/div/div[${i}]/figure/dl/div[3]/dd`
+        )
+        .then((temp) => temp[0].evaluate((e) => e.innerText)),
+    ]);
+  }
+
+  [
+    [game.homeTeam_errors, game.awayTeam_errors],
+    [game.homeTeam_penaltiesConceded, game.awayTeam_penaltiesConceded],
+  ] = NegativePlayStats;
+
+  await browser.close();
+
+  return game;
+}
+
+getData();
+
+
+?????????????????????????????????????????????????????????????????????????????????????
+
+drawsData.js
+
+// will store the scraped data
+class Dataset {
+  constructor() {
+    this.conditions = "";
+    this.homeTeam = "";
+    this.homeTeam_FT_score = "";
+    this.homeTeam_HT_score = "";
+    this.homeTeam_tryscorers = [];
+    this.homeTeam_possession = "";
+    this.homeTeam_completionRate = "";
+    this.homeTeam_allRuns = "";
+    this.homeTeam_allRunMetres = "";
+    this.homeTeam_postContactMetres = "";
+    this.homeTeam_linebreaks = "";
+    this.homeTeam_tacklebreaks = "";
+    this.homeTeam_avgSetDist = "";
+    this.homeTeam_kickReturnMetres = "";
+    this.homeTeam_offloads = "";
+    this.homeTeam_receipts = "";
+    this.homeTeam_totalPasses = "";
+    this.homeTeam_dummyPasses = "";
+    this.homeTeam_kicks = "";
+    this.homeTeam_kickingMetres = "";
+    this.homeTeam_forcedDropouts = "";
+    this.homeTeam_avgPTBSpeed = "";
+    this.homeTeam_tackleEfficieny = "";
+    this.homeTeam_tacklesMade = "";
+    this.homeTeam_missedTackles = "";
+    this.homeTeam_intercepts = "";
+    this.homeTeam_ineffectiveTackles = "";
+    this.homeTeam_errors = "";
+    this.homeTeam_penaltiesConceded = "";
+    this.awayTeam = "";
+    this.awayTeam_FT_score = "";
+    this.awayTeam_HT_score = "";
+    this.awayTeam_tryscorers = [];
+    this.awayTeam_possession = "";
+    this.awayTeam_completionRate = "";
+    this.awayTeam_allRuns = "";
+    this.awayTeam_allRunMetres = "";
+    this.awayTeam_postContactMetres = "";
+    this.awayTeam_linebreaks = "";
+    this.awayTeam_tacklebreaks = "";
+    this.awayTeam_avgSetDist = "";
+    this.awayTeam_kickReturnMetres = "";
+    this.awayTeam_offloads = "";
+    this.awayTeam_receipts = "";
+    this.awayTeam_totalPasses = "";
+    this.awayTeam_total_passes = "";
+    this.awayTeam_dummyPasses = "";
+    this.awayTeam_kicks = "";
+    this.awayTeam_kickingMetres = "";
+    this.awayTeam_forcedDropouts = "";
+    this.awayTeam_avgPTBSpeed = "";
+    this.awayTeam_tackleEfficieny = "";
+    this.awayTeam_tacklesMade = "";
+    this.awayTeam_missedTackles = "";
+    this.homeTeam_intercepts = "";
+    this.awayTeam_ineffectiveTackles = "";
+    this.awayTeam_errors = "";
+    this.awayTeam_penaltiesConceded = "";
+  }
+}
+
+class RoundData {
+  constructor(round, numOfMatches) {
+    this.round = round;
+    this.matchups = new Array(numOfMatches).fill(new Dataset());
+  }
+}
+
+const data = [
+  {
+    year: 2018,
+    rounds: [
+      new RoundData(1, 8),
+      new RoundData(2, 8),
+      new RoundData(3, 8),
+      new RoundData(4, 8),
+      new RoundData(5, 8),
+      new RoundData(6, 8),
+      new RoundData(7, 8),
+      new RoundData(8, 8),
+      new RoundData(9, 8),
+      new RoundData(10, 8),
+      new RoundData(11, 8),
+      new RoundData(12, 8),
+      new RoundData(13, 8),
+      new RoundData(14, 8),
+      new RoundData(15, 8),
+      new RoundData(16, 8),
+      new RoundData(17, 8),
+      new RoundData(18, 8),
+      new RoundData(19, 8),
+      new RoundData(20, 8),
+      new RoundData(21, 8),
+      new RoundData(22, 8),
+      new RoundData(23, 8),
+      new RoundData(24, 8),
+      new RoundData(25, 8),
+      new RoundData(26, 4),
+      new RoundData(27, 2),
+      new RoundData(28, 2),
+      new RoundData(29, 1),
+    ],
+  },
+  {
+    year: 2019,
+    rounds: [
+      new RoundData(1, 8),
+      new RoundData(2, 8),
+      new RoundData(3, 8),
+      new RoundData(4, 8),
+      new RoundData(5, 8),
+      new RoundData(6, 8),
+      new RoundData(7, 8),
+      new RoundData(8, 8),
+      new RoundData(9, 8),
+      new RoundData(10, 8),
+      new RoundData(11, 8),
+      new RoundData(12, 8),
+      new RoundData(13, 8),
+      new RoundData(14, 8),
+      new RoundData(15, 8),
+      new RoundData(16, 8),
+      new RoundData(17, 8),
+      new RoundData(18, 8),
+      new RoundData(19, 8),
+      new RoundData(20, 8),
+      new RoundData(21, 8),
+      new RoundData(22, 8),
+      new RoundData(23, 8),
+      new RoundData(24, 8),
+      new RoundData(25, 8),
+      new RoundData(26, 4),
+      new RoundData(27, 2),
+      new RoundData(28, 2),
+      new RoundData(29, 1),
+    ],
+  },
+  {
+    year: 2020,
+    rounds: [
+      new RoundData(1, 8),
+      new RoundData(2, 8),
+      new RoundData(3, 8),
+      new RoundData(4, 8),
+      new RoundData(5, 8),
+      new RoundData(6, 8),
+      new RoundData(7, 8),
+      new RoundData(8, 8),
+      new RoundData(9, 8),
+      new RoundData(10, 8),
+      new RoundData(11, 8),
+      new RoundData(12, 8),
+      new RoundData(13, 8),
+      new RoundData(14, 8),
+      new RoundData(15, 8),
+      new RoundData(16, 8),
+      new RoundData(17, 8),
+      new RoundData(18, 8),
+      new RoundData(19, 8),
+      new RoundData(20, 8),
+      new RoundData(21, 8),
+      new RoundData(22, 8),
+      new RoundData(23, 8),
+      new RoundData(24, 8),
+      new RoundData(25, 8),
+      new RoundData(26, 4),
+      new RoundData(27, 2),
+      new RoundData(28, 2),
+      new RoundData(29, 1),
+    ],
+  },
+  {
+    year: 2021,
+    rounds: [
+      new RoundData(1, 8),
+      new RoundData(2, 8),
+      new RoundData(3, 8),
+      new RoundData(4, 8),
+      new RoundData(5, 8),
+      new RoundData(6, 8),
+      new RoundData(7, 8),
+      new RoundData(8, 8),
+      new RoundData(9, 8),
+      new RoundData(10, 8),
+      new RoundData(11, 8),
+      new RoundData(12, 8),
+      new RoundData(13, 8),
+      new RoundData(14, 8),
+      new RoundData(15, 8),
+      new RoundData(16, 8),
+      new RoundData(17, 8),
+      new RoundData(18, 8),
+      new RoundData(19, 8),
+      new RoundData(20, 8),
+      new RoundData(21, 8),
+      new RoundData(22, 8),
+      new RoundData(23, 8),
+      new RoundData(24, 8),
+      new RoundData(25, 8),
+      new RoundData(26, 4),
+      new RoundData(27, 2),
+      new RoundData(28, 2),
+      new RoundData(29, 1),
+    ],
+  },
+  {
+    year: 2022,
+    rounds: [
+      new RoundData(1, 8),
+      new RoundData(2, 8),
+      new RoundData(3, 8),
+      new RoundData(4, 8),
+      new RoundData(5, 8),
+      new RoundData(6, 8),
+      new RoundData(7, 8),
+      new RoundData(8, 8),
+      new RoundData(9, 8),
+      new RoundData(10, 8),
+      new RoundData(11, 8),
+      new RoundData(12, 8),
+      new RoundData(13, 8),
+      new RoundData(14, 8),
+      new RoundData(15, 8),
+      new RoundData(16, 8),
+      new RoundData(17, 8),
+      new RoundData(18, 8),
+      new RoundData(19, 8),
+      new RoundData(20, 8),
+      new RoundData(21, 8),
+      new RoundData(22, 8),
+      new RoundData(23, 8),
+      new RoundData(24, 8),
+      new RoundData(25, 8),
+      new RoundData(26, 4),
+      new RoundData(27, 2),
+      new RoundData(28, 2),
+      new RoundData(29, 1),
+    ],
+  },
+];
+
+// data.forEach((elm) => console.log(elm.year));
+
+module.exports = {
+  dataJSON: JSON.stringify(data),
+};
+
+
+------------------------------------------------------------------------------
+
+// Retrieves data directly from the NRL website
+
+const puppeteer = require("puppeteer");
+const fs = require("fs");
+const database = require("./drawsData.js");
+
+process.setMaxListeners(200);
+
+// Dataset object that contains all the data points
+//intended to be extracted for a specific game
+class Dataset {
+  constructor() {
+    this.conditions = "";
+    this.homeTeam = "";
+    this.homeTeam_FT_score = "";
+    this.homeTeam_HT_score = "";
+    this.homeTeam_tryscorers = [];
+    this.homeTeam_possession = "";
+    this.homeTeam_completionRate = "";
+    this.homeTeam_allRuns = "";
+    this.homeTeam_allRunMetres = "";
+    this.homeTeam_postContactMetres = "";
+    this.homeTeam_linebreaks = "";
+    this.homeTeam_tacklebreaks = "";
+    this.homeTeam_avgSetDist = "";
+    this.homeTeam_kickReturnMetres = "";
+    this.homeTeam_offloads = "";
+    this.homeTeam_receipts = "";
+    this.homeTeam_totalPasses = "";
+    this.homeTeam_dummyPasses = "";
+    this.homeTeam_kicks = "";
+    this.homeTeam_kickingMetres = "";
+    this.homeTeam_forcedDropouts = "";
+    this.homeTeam_avgPTBSpeed = "";
+    this.homeTeam_tackleEfficieny = "";
+    this.homeTeam_tacklesMade = "";
+    this.homeTeam_missedTackles = "";
+    this.homeTeam_intercepts = "";
+    this.homeTeam_ineffectiveTackles = "";
+    this.homeTeam_errors = "";
+    this.homeTeam_penaltiesConceded = "";
+    this.awayTeam = "";
+    this.awayTeam_FT_score = "";
+    this.awayTeam_HT_score = "";
+    this.awayTeam_tryscorers = [];
+    this.awayTeam_possession = "";
+    this.awayTeam_completionRate = "";
+    this.awayTeam_allRuns = "";
+    this.awayTeam_allRunMetres = "";
+    this.awayTeam_postContactMetres = "";
+    this.awayTeam_linebreaks = "";
+    this.awayTeam_tacklebreaks = "";
+    this.awayTeam_avgSetDist = "";
+    this.awayTeam_kickReturnMetres = "";
+    this.awayTeam_offloads = "";
+    this.awayTeam_receipts = "";
+    this.awayTeam_totalPasses = "";
+    this.awayTeam_total_passes = "";
+    this.awayTeam_dummyPasses = "";
+    this.awayTeam_kicks = "";
+    this.awayTeam_kickingMetres = "";
+    this.awayTeam_forcedDropouts = "";
+    this.awayTeam_avgPTBSpeed = "";
+    this.awayTeam_tackleEfficieny = "";
+    this.awayTeam_tacklesMade = "";
+    this.awayTeam_missedTackles = "";
+    this.homeTeam_intercepts = "";
+    this.awayTeam_ineffectiveTackles = "";
+    this.awayTeam_errors = "";
+    this.awayTeam_penaltiesConceded = "";
+  }
+}
+
+async function getData() {
+  const gameData = JSON.parse(database.dataJSON);
+  for (const season of gameData) {
+    // iterates through each element of the gameData array
+    for (let round of season.rounds) {
+      // iterates through each round of the "season" block
+      round = ExtractingData(round.round, season.year);
+    }
+  }
+
+  fs.writeFile("./historicalDrawData.json", JSON.stringify(gameData), (err) => {
+    if (err) {
+      console.log(err);
+    } else {
+      console.log("Historical draw data successfully transferred");
+    }
+  });
+}
+
+async function ExtractingData(round, season) {
+  // launches broswer and findw webpage of specific round and season
+  const browser = await puppeteer.launch();
+  const page = await browser.newPage();
+  await page.goto(
+    `https://www.nrl.com/draw/?competition=111&round=${round}&season=${season}`
+  );
+
+  // finds the number of games in the specific round
+  const numGames = await page.evaluate(() => {
+    const stuff = document.querySelectorAll("#draw-content section");
+    console.log(stuff);
+    return [...stuff].slice(0, stuff.length - 1).length;
+  });
+
+  // populates the "roundMatchups" array with string elements that
+  // contains the teams in the matchup
+  const roundMatchups = [];
+  for (let i = 1; i <= numGames; i++) {
+    await page.waitForXPath(
+      `//div[@id='draw-content']/section[${i}]/ul/li/div/div/h3`
+    );
+    roundMatchups.push(
+      await page
+        .$x(`//div[@id='draw-content']/section[${i}]/ul/li/div/div/h3`)
+        .then((temp) => temp[0].evaluate((e) => e.innerText))
+    );
+  }
+
+  // transforms "roundMatchups" array to contain all relevant data for the games in the round
+  roundMatchups.map(async (matchup) => {
+    // parses the matchup string to isolate the two team substring and assigns them to
+    // a the homeTeam and awayTeam variables respectively
+    [homeTeam, awayTeam] = parseTeams(matchup);
+    await browser.close();
+    // get's the all the data points for this specific matchup
+    return await getGameData(round, season, homeTeam, awayTeam);
+  });
+
+  console.log(roundMatchups);
+
+  return roundMatchups;
+}
+
+function parseTeams(matchupStr) {
+  // Regular expression that will isolate the teams' substrings
+  const regEx = /^Match:\s(?<homeTeam>[\w\s]+)\svs\s(?<awayTeam>[\w\s]+)$/;
+  const { homeTeam, awayTeam } = matchupStr.match(regEx).groups;
+  return [homeTeam, awayTeam];
+}
+
+async function getGameData(round, season, homeTeam, awayTeam) {
+  // Launches broswer and findw webpage of specific round and season
+  const browser = await puppeteer.launch();
+  const page = await browser.newPage();
+  await page.goto(
+    `https://www.nrl.com/draw/nrl-premiership/${season}/round-${round}/${homeTeam}-v-${awayTeam}/`
+  );
+  // Creates a new instance of the "Dataset" object
+  // (contains the keys for all the data points to be extracted)
+  const game = new Dataset();
+
+  game.homeTeam = homeTeam;
+  game.awayTeam = awayTeam;
+
+  // Retrieves the full/half time scores, ground conditions and try scorers data for both teams
+  [
+    game.homeTeam_FT_score,
+    game.awayTeam_FT_score,
+    game.conditions,
+    game.homeTeam_tryscorers,
+    game.awayTeam_tryscorers,
+    game.homeTeam_HT_score,
+    game.awayTeam_HT_score,
+  ] = await page.evaluate(() => {
+    const HFTS = document
+      .querySelector(".match-team__score--home")
+      .innerText.split("\n")[1];
+    const AFTS = document
+      .querySelector(".match-team__score--away")
+      .innerText.split("\n")[1];
+    const COND = document.querySelector(".match-weather__text span").innerText;
+    const tries = document
+      .querySelector(".match-centre-summary-group")
+      .lastChild.querySelectorAll("ul");
+    const HTS = tries[0].innerText.split("\n");
+    const ATS = tries[1].innerText.split("\n");
+    const halftime = document
+      .querySelectorAll(".match-centre-summary-group")[4]
+      .querySelectorAll("h3 span");
+    const HHTS = halftime[1].innerText;
+    const AHTS = halftime[4].innerText;
+    return [HFTS, AFTS, COND, HTS, ATS, HHTS, AHTS];
+  });
+
+  const dataOptionsXpath =
+    "//div[@class='tabs__trigger-scroller tabs__list-container u-hide-scrollbar u-momentum-scrolling u-scroll-behaviour-smooth o-rounded-box o-rounded-box--sharp-until-600 o-shadowed-ui-control']/ul/li[4]/a";
+  await page.waitForXPath(dataOptionsXpath);
+  const dataOptionsBtn = await page.$x(dataOptionsXpath);
+  await dataOptionsBtn[0].click();
+
+  // Retrieves the possession / completion rates data for both teams
+  await page.waitForXPath("//div[@class='u-spacing-mb-24']/div/div/div/div/p");
+  game.homeTeam_possession = await page
+    .$x("//div[@class='u-spacing-mb-24']/div/div/div/div/p")
+    .then((HPoss) => HPoss[0].evaluate((e) => e.innerText.split("%")[0]));
+
+  await page.waitForXPath(
+    "//div[@class='u-spacing-mb-24']/div/div/div/div/p[2]"
+  );
+  game.awayTeam_possession = await page
+    .$x("//div[@class='u-spacing-mb-24']/div/div/div/div/p[2]")
+    .then((APoss) => APoss[0].evaluate((e) => e.innerText.split("%")[0]));
+
+  await page.waitForXPath(
+    "//div[@class='u-spacing-pb-24 u-spacing-pt-16 u-width-100'][3]/div/div/figure/figcaption/p/span[2]/span"
+  );
+  game.homeTeam_completionRate = await page
+    .$x(
+      "//div[@class='u-spacing-pb-24 u-spacing-pt-16 u-width-100'][3]/div/div/figure/figcaption/p/span[2]/span"
+    )
+    .then((HCompl) => HCompl[0].evaluate((e) => e.innerText.split("%")[0]));
+
+  await page.waitForXPath(
+    "//div[@class='u-spacing-pb-24 u-spacing-pt-16 u-width-100'][3]/div/div[2]/figure/figcaption/p/span[2]/span"
+  );
+  game.awayTeam_completionRate = await page
+    .$x(
+      "//div[@class='u-spacing-pb-24 u-spacing-pt-16 u-width-100'][3]/div/div[2]/figure/figcaption/p/span[2]/span"
+    )
+    .then((ACompl) => ACompl[0].evaluate((e) => e.innerText.split("%")[0]));
+
+  // Retrieves the all runs, all run metres, post contact metres, linebreaks, tacklebreaks,
+  // average set distance and kick return metres data for both teams
+  const offsenseStats = [];
+  for (let i = 1; i <= 7; i++) {
+    offsenseStats.push([
+      await page
+        .$x(
+          `//div[@id='tabs-match-centre-']/div[6]/section/div/div/div[2]/div/div[${i}]/figure/dl/div/dd`
+        )
+        .then((temp) => temp[0].evaluate((e) => e.innerText)),
+      await page
+        .$x(
+          `//div[@id='tabs-match-centre-']/div[6]/section/div/div/div[2]/div/div[${i}]/figure/dl/div[3]/dd`
+        )
+        .then((temp) => temp[0].evaluate((e) => e.innerText)),
+    ]);
+  }
+
+  [
+    [game.homeTeam_allRuns, game.awayTeam_allRuns],
+    [game.homeTeam_allRunMetres, game.awayTeam_allRunMetres],
+    [game.homeTeam_postContactMetres, game.awayTeam_postContactMetres],
+    [game.homeTeam_linebreaks, game.awayTeam_linebreaks],
+    [game.homeTeam_tacklebreaks, game.awayTeam_tacklebreaks],
+    [game.homeTeam_avgSetDist, game.awayTeam_avgSetDist],
+    [game.homeTeam_kickReturnMetres, game.awayTeam_kickReturnMetres],
+  ] = offsenseStats;
+
+  game.homeTeam_avgPTBSpeed = await page
+    .$x(
+      "//div[@id='tabs-match-centre-']/div[6]/section/div/div/div[2]/div/div[8]/div/div/figure/figcaption/p/span[2]/span"
+    )
+    .then((temp) => temp[0].evaluate((e) => e.innerText));
+
+  game.awayTeam_avgPTBSpeed = await page
+    .$x(
+      "//div[@id='tabs-match-centre-']/div[6]/section/div/div/div[2]/div/div[8]/div/div[2]/figure/figcaption/p/span[2]/span"
+    )
+    .then((temp) => temp[0].evaluate((e) => e.innerText));
+
+  // Retrieves the offloads, receipts, total passes and dummy passes data for both teams
+  const passingStats = [];
+  for (let i = 1; i <= 4; i++) {
+    passingStats.push([
+      await page
+        .$x(
+          `//div[@id='tabs-match-centre-']/div[6]/section/div/div/div[3]/div/div[${i}]/figure/dl/div/dd`
+        )
+        .then((temp) => temp[0].evaluate((e) => e.innerText)),
+      await page
+        .$x(
+          `//div[@id='tabs-match-centre-']/div[6]/section/div/div/div[3]/div/div[${i}]/figure/dl/div[3]/dd`
+        )
+        .then((temp) => temp[0].evaluate((e) => e.innerText)),
+    ]);
+  }
+
+  [
+    [game.homeTeam_offloads, game.awayTeam_offloads],
+    [game.homeTeam_receipts, game.awayTeam_receipts],
+    [game.homeTeam_totalPasses, game.awayTeam_totalPasses],
+    [game.homeTeam_dummyPasses, game.awayTeam_dummyPasses],
+  ] = passingStats;
+
+  // Retrieves the kicks, kicking metres and forced dropouts data for both teams
+  const kickingStats = [];
+  for (let i = 1; i <= 3; i++) {
+    kickingStats.push([
+      await page
+        .$x(
+          `//div[@id='tabs-match-centre-']/div[6]/section/div/div/div[4]/div/div[${i}]/figure/dl/div/dd`
+        )
+        .then((temp) => temp[0].evaluate((e) => e.innerText)),
+      await page
+        .$x(
+          `//div[@id='tabs-match-centre-']/div[6]/section/div/div/div[4]/div/div[${i}]/figure/dl/div[3]/dd`
+        )
+        .then((temp) => temp[0].evaluate((e) => e.innerText)),
+    ]);
+  }
+
+  [
+    [game.homeTeam_kicks, game.awayTeam_kicks],
+    [game.homeTeam_kickingMetres, game.awayTeam_kickingMetres],
+    [game.homeTeam_forcedDropouts, game.awayTeam_forcedDropouts],
+  ] = kickingStats;
+
+  // Retrieves the tackles made, missed tackles, intercepts, ineffective tackles data for both teams
+  game.homeTeam_tackleEfficieny = await page
+    .$x(
+      "//div[@id='tabs-match-centre-']/div[6]/section/div/div/div[5]/div/div[1]/div/div/figure/figcaption/p/span/span"
+    )
+    .then((temp) => temp[0].evaluate((e) => e.innerText));
+
+  game.awayTeam_tackleEfficieny = await page
+    .$x(
+      "//div[@id='tabs-match-centre-']/div[6]/section/div/div/div[5]/div/div[1]/div/div[2]/figure/figcaption/p/span/span"
+    )
+    .then((temp) => temp[0].evaluate((e) => e.innerText));
+
+  const defensiveStats = [];
+  for (let i = 2; i <= 5; i++) {
+    defensiveStats.push([
+      await page
+        .$x(
+          `//div[@id='tabs-match-centre-']/div[6]/section/div/div/div[5]/div/div[${i}]/figure/dl/div/dd`
+        )
+        .then((temp) => temp[0].evaluate((e) => e.innerText)),
+      await page
+        .$x(
+          `//div[@id='tabs-match-centre-']/div[6]/section/div/div/div[5]/div/div[${i}]/figure/dl/div[3]/dd`
+        )
+        .then((temp) => temp[0].evaluate((e) => e.innerText)),
+    ]);
+  }
+
+  [
+    [game.homeTeam_tacklesMade, game.awayTeam_tacklesMade],
+    [game.homeTeam_missedTackles, game.awayTeam_missedTackles],
+    [game.homeTeam_intercepts, game.awayTeam_intercepts],
+    [game.homeTeam_ineffectiveTackles, game.awayTeam_ineffectiveTackles],
+  ] = defensiveStats;
+
+  // Retrieves the error and penalties conceded data for both teams
+  const NegativePlayStats = [];
+  for (let i = 1; i <= 2; i++) {
+    NegativePlayStats.push([
+      await page
+        .$x(
+          `//div[@id='tabs-match-centre-']/div[6]/section/div/div/div[6]/div/div[${i}]/figure/dl/div/dd`
+        )
+        .then((temp) => temp[0].evaluate((e) => e.innerText)),
+      await page
+        .$x(
+          `//div[@id='tabs-match-centre-']/div[6]/section/div/div/div[6]/div/div[${i}]/figure/dl/div[3]/dd`
+        )
+        .then((temp) => temp[0].evaluate((e) => e.innerText)),
+    ]);
+  }
+
+  [
+    [game.homeTeam_errors, game.awayTeam_errors],
+    [game.homeTeam_penaltiesConceded, game.awayTeam_penaltiesConceded],
+  ] = NegativePlayStats;
+
+  await browser.close();
+
+  return game;
+}
+
+getData();
+
+
+???????????????????????????????????????????????????
+
+const data = [
+  {
+    year: 2018,
+    rounds: [
+      new RoundData(1, 8),
+      new RoundData(2, 8),
+      new RoundData(3, 8),
+      new RoundData(4, 8),
+      new RoundData(5, 8),
+      new RoundData(6, 8),
+      new RoundData(7, 8),
+      new RoundData(8, 8),
+      new RoundData(9, 8),
+      new RoundData(10, 8),
+      new RoundData(11, 8),
+      new RoundData(12, 8),
+      new RoundData(13, 8),
+      new RoundData(14, 8),
+      new RoundData(15, 8),
+      new RoundData(16, 8),
+      new RoundData(17, 8),
+      new RoundData(18, 8),
+      new RoundData(19, 8),
+      new RoundData(20, 8),
+      new RoundData(21, 8),
+      new RoundData(22, 8),
+      new RoundData(23, 8),
+      new RoundData(24, 8),
+      new RoundData(25, 8),
+      new RoundData(26, 4),
+      new RoundData(27, 2),
+      new RoundData(28, 2),
+      new RoundData(29, 1),
+    ],
+  },
+  {
+    year: 2019,
+    rounds: [
+      new RoundData(1, 8),
+      new RoundData(2, 8),
+      new RoundData(3, 8),
+      new RoundData(4, 8),
+      new RoundData(5, 8),
+      new RoundData(6, 8),
+      new RoundData(7, 8),
+      new RoundData(8, 8),
+      new RoundData(9, 8),
+      new RoundData(10, 8),
+      new RoundData(11, 8),
+      new RoundData(12, 8),
+      new RoundData(13, 8),
+      new RoundData(14, 8),
+      new RoundData(15, 8),
+      new RoundData(16, 8),
+      new RoundData(17, 8),
+      new RoundData(18, 8),
+      new RoundData(19, 8),
+      new RoundData(20, 8),
+      new RoundData(21, 8),
+      new RoundData(22, 8),
+      new RoundData(23, 8),
+      new RoundData(24, 8),
+      new RoundData(25, 8),
+      new RoundData(26, 4),
+      new RoundData(27, 2),
+      new RoundData(28, 2),
+      new RoundData(29, 1),
+    ],
+  },
+  {
+    year: 2020,
+    rounds: [
+      new RoundData(1, 8),
+      new RoundData(2, 8),
+      new RoundData(3, 8),
+      new RoundData(4, 8),
+      new RoundData(5, 8),
+      new RoundData(6, 8),
+      new RoundData(7, 8),
+      new RoundData(8, 8),
+      new RoundData(9, 8),
+      new RoundData(10, 8),
+      new RoundData(11, 8),
+      new RoundData(12, 8),
+      new RoundData(13, 8),
+      new RoundData(14, 8),
+      new RoundData(15, 8),
+      new RoundData(16, 8),
+      new RoundData(17, 8),
+      new RoundData(18, 8),
+      new RoundData(19, 8),
+      new RoundData(20, 8),
+      new RoundData(21, 8),
+      new RoundData(22, 8),
+      new RoundData(23, 8),
+      new RoundData(24, 8),
+      new RoundData(25, 8),
+      new RoundData(26, 4),
+      new RoundData(27, 2),
+      new RoundData(28, 2),
+      new RoundData(29, 1),
+    ],
+  },
+  {
+    year: 2021,
+    rounds: [
+      new RoundData(1, 8),
+      new RoundData(2, 8),
+      new RoundData(3, 8),
+      new RoundData(4, 8),
+      new RoundData(5, 8),
+      new RoundData(6, 8),
+      new RoundData(7, 8),
+      new RoundData(8, 8),
+      new RoundData(9, 8),
+      new RoundData(10, 8),
+      new RoundData(11, 8),
+      new RoundData(12, 8),
+      new RoundData(13, 8),
+      new RoundData(14, 8),
+      new RoundData(15, 8),
+      new RoundData(16, 8),
+      new RoundData(17, 8),
+      new RoundData(18, 8),
+      new RoundData(19, 8),
+      new RoundData(20, 8),
+      new RoundData(21, 8),
+      new RoundData(22, 8),
+      new RoundData(23, 8),
+      new RoundData(24, 8),
+      new RoundData(25, 8),
+      new RoundData(26, 4),
+      new RoundData(27, 2),
+      new RoundData(28, 2),
+      new RoundData(29, 1),
+    ],
+  },
+  {
+    year: 2022,
+    rounds: [
+      new RoundData(1, 8),
+      new RoundData(2, 8),
+      new RoundData(3, 8),
+      new RoundData(4, 8),
+      new RoundData(5, 8),
+      new RoundData(6, 8),
+      new RoundData(7, 8),
+      new RoundData(8, 8),
+      new RoundData(9, 8),
+      new RoundData(10, 8),
+      new RoundData(11, 8),
+      new RoundData(12, 8),
+      new RoundData(13, 8),
+      new RoundData(14, 8),
+      new RoundData(15, 8),
+      new RoundData(16, 8),
+      new RoundData(17, 8),
+      new RoundData(18, 8),
+      new RoundData(19, 8),
+      new RoundData(20, 8),
+      new RoundData(21, 8),
+      new RoundData(22, 8),
+      new RoundData(23, 8),
+      new RoundData(24, 8),
+      new RoundData(25, 8),
+      new RoundData(26, 4),
+      new RoundData(27, 2),
+      new RoundData(28, 2),
+      new RoundData(29, 1),
+    ],
+  },
+];
+
+
+(((((((((((((((((((((((((((((((((((((())))))))))))))))))))))))))))))))))))))
+
+async function getTeams(season, round, numOfGames, browser) {
+  const roundMatchups = [];
+
+  const page = await browser.newPage();
+  for (let i = 1; i <= numOfGames; i++) {
+    await page.goto(
+      `https://www.nrl.com/draw/?competition=111&round=${round}&season=${season}`
+    );
+
+    await page.waitForXPath(
+      `//div[@id='draw-content']/section[${i}]/ul/li/div/div/h3`
+    );
+    const teams = parseTeams(
+      await page
+        .$x(`//div[@id='draw-content']/section[${i}]/ul/li/div/div/h3`)
+        .then((temp) => temp[0].evaluate((e) => e.innerText))
+    );
+
+    roundMatchups.push(teams);
+
+    await page.close();
+  }
+
+  console.log(roundMatchups);
+
+  return roundMatchups;
+}
+
+
+
+(((((((((((((((((((((((((((((((((((((((())))))))))))))))))))))))))))))))))))))))
+
+// Retrieves data directly from the NRL website
+
+const puppeteer = require("puppeteer");
+const fs = require("fs");
+const database = require("./drawsData.js");
+
+process.setMaxListeners(30);
+
+// Dataset object that contains all the data points
+//intended to be extracted for a specific game
+class Dataset {
+  constructor() {
+    this.conditions = "";
+    this.homeTeam = "";
+    this.homeTeam_FT_score = "";
+    this.homeTeam_HT_score = "";
+    this.homeTeam_tryscorers = [];
+    this.homeTeam_possession = "";
+    this.homeTeam_completionRate = "";
+    this.homeTeam_allRuns = "";
+    this.homeTeam_allRunMetres = "";
+    this.homeTeam_postContactMetres = "";
+    this.homeTeam_linebreaks = "";
+    this.homeTeam_tacklebreaks = "";
+    this.homeTeam_avgSetDist = "";
+    this.homeTeam_kickReturnMetres = "";
+    this.homeTeam_offloads = "";
+    this.homeTeam_receipts = "";
+    this.homeTeam_totalPasses = "";
+    this.homeTeam_dummyPasses = "";
+    this.homeTeam_kicks = "";
+    this.homeTeam_kickingMetres = "";
+    this.homeTeam_forcedDropouts = "";
+    this.homeTeam_avgPTBSpeed = "";
+    this.homeTeam_tackleEfficieny = "";
+    this.homeTeam_tacklesMade = "";
+    this.homeTeam_missedTackles = "";
+    this.homeTeam_intercepts = "";
+    this.homeTeam_ineffectiveTackles = "";
+    this.homeTeam_errors = "";
+    this.homeTeam_penaltiesConceded = "";
+    this.awayTeam = "";
+    this.awayTeam_FT_score = "";
+    this.awayTeam_HT_score = "";
+    this.awayTeam_tryscorers = [];
+    this.awayTeam_possession = "";
+    this.awayTeam_completionRate = "";
+    this.awayTeam_allRuns = "";
+    this.awayTeam_allRunMetres = "";
+    this.awayTeam_postContactMetres = "";
+    this.awayTeam_linebreaks = "";
+    this.awayTeam_tacklebreaks = "";
+    this.awayTeam_avgSetDist = "";
+    this.awayTeam_kickReturnMetres = "";
+    this.awayTeam_offloads = "";
+    this.awayTeam_receipts = "";
+    this.awayTeam_totalPasses = "";
+    this.awayTeam_total_passes = "";
+    this.awayTeam_dummyPasses = "";
+    this.awayTeam_kicks = "";
+    this.awayTeam_kickingMetres = "";
+    this.awayTeam_forcedDropouts = "";
+    this.awayTeam_avgPTBSpeed = "";
+    this.awayTeam_tackleEfficieny = "";
+    this.awayTeam_tacklesMade = "";
+    this.awayTeam_missedTackles = "";
+    this.awayTeam_intercepts = "";
+    this.awayTeam_ineffectiveTackles = "";
+    this.awayTeam_errors = "";
+    this.awayTeam_penaltiesConceded = "";
+  }
+}
+
+let browser;
+
+async function initialiseBrowser() {
+  browser = await puppeteer.launch();
+}
+
+async function closeBrowser() {
+  await browser.close();
+}
+
+async function getData() {
+  await initialiseBrowser();
+  const gameData = JSON.parse(database.dataJSON);
+  try {
+    for (const season of gameData) {
+      season.rounds = await Promise.all(
+        season.rounds.map((round) => ExtractingData(round.round, season.year))
+      );
+    }
+
+    fs.writeFile(
+      "./historicalDrawData.json",
+      JSON.stringify(gameData),
+      (err) => {
+        if (err) {
+          console.log(err);
+        } else {
+          console.log("Historical draw data successfully transferred");
+        }
+      }
+    );
+  } catch (error) {
+    console.error(error);
+  } finally {
+    await closeBrowser();
+  }
+}
+
+async function ExtractingData(round, season) {
+  const page = await browser.newPage();
+  await page.goto(
+    `https://www.nrl.com/draw/?competition=111&round=${round}&season=${season}`
+  );
+
+  // finds the number of games in the specific round
+  const numGames = await page.evaluate(() => {
+    const drawContent = document.querySelectorAll("#draw-content section");
+    return [...drawContent].slice(0, drawContent.length - 1).length;
+  });
+
+  // populates the "roundMatchups" array with string elements that
+  // contains the teams in the matchup
+  const roundMatchups = await Promise.all(
+    Array.from({ length: numGames }, (_, i) => i + 1).map(async (i) => {
+      await page.waitForXPath(
+        `//div[@id='draw-content']/section[${i}]/ul/li/div/div/h3`
+      );
+      return await page
+        .$x(`//div[@id='draw-content']/section[${i}]/ul/li/div/div/h3`)
+        .then((temp) => temp[0].evaluate((e) => e.innerText));
+    })
+  );
+  await browser.close();
+
+  const gameData = await Promise.all(
+    roundMatchups.map(async (matchup) => {
+      [homeTeam, awayTeam] = parseTeams(matchup);
+      return await getGameData(round, season, homeTeam, awayTeam);
+    })
+  );
+  console.log(gameData);
+  await page.close();
+  return gameData;
+}
+
+function parseTeams(matchupStr) {
+  // Regular expression that will isolate the teams' substrings
+  const regEx = /^Match:\s(?<homeTeam>[\w\s]+)\svs\s(?<awayTeam>[\w\s]+)$/;
+  const { homeTeam, awayTeam } = matchupStr.match(regEx).groups;
+  return [homeTeam, awayTeam];
+}
+
+async function getGameData(round, season, homeTeam, awayTeam) {
+  // Launches browser and findw webpage of specific round and season
+  const page = await browser.newPage();
+  await page.goto(
+    `https://www.nrl.com/draw/nrl-premiership/${season}/round-${round}/${homeTeam}-v-${awayTeam}/`
+  );
+  // Creates a new instance of the "Dataset" object
+  // (contains the keys for all the data points to be extracted)
+  const game = new Dataset();
+
+  game.homeTeam = homeTeam;
+  console.log(homeTeam);
+  game.awayTeam = awayTeam;
+  console.log(awayTeam);
+
+  // Retrieves the full/half time scores, ground conditions and try scorers data for both teams
+  [
+    game.homeTeam_FT_score,
+    game.awayTeam_FT_score,
+    game.conditions,
+    game.homeTeam_tryscorers,
+    game.awayTeam_tryscorers,
+    game.homeTeam_HT_score,
+    game.awayTeam_HT_score,
+  ] = await page.evaluate(() => {
+    const HFTS = document
+      .querySelector(".match-team__score--home")
+      .innerText.split("\n")[1];
+    const AFTS = document
+      .querySelector(".match-team__score--away")
+      .innerText.split("\n")[1];
+    const COND = document.querySelector(".match-weather__text span").innerText;
+    const tries = document
+      .querySelector(".match-centre-summary-group")
+      .lastChild.querySelectorAll("ul");
+    const HTS = tries[0].innerText.split("\n");
+    const ATS = tries[1].innerText.split("\n");
+    const halftime = document
+      .querySelectorAll(".match-centre-summary-group")[4]
+      .querySelectorAll("h3 span");
+    const HHTS = halftime[1].innerText;
+    const AHTS = halftime[4].innerText;
+    console.log(HFTS, AFTS, COND, HTS, ATS, HHTS, AHTS);
+    return [HFTS, AFTS, COND, HTS, ATS, HHTS, AHTS];
+  });
+
+  const dataOptionsXpath =
+    "//div[@class='tabs__trigger-scroller tabs__list-container u-hide-scrollbar u-momentum-scrolling u-scroll-behaviour-smooth o-rounded-box o-rounded-box--sharp-until-600 o-shadowed-ui-control']/ul/li[4]/a";
+  await page.waitForXPath(dataOptionsXpath);
+  const dataOptionsBtn = await page.$x(dataOptionsXpath);
+  await dataOptionsBtn[0].click();
+
+  // Retrieves the possession / completion rates data for both teams
+  try {
+    game.homeTeam_possession = await fetchDataAndParse(
+      page,
+      "//div[@class='u-spacing-mb-24']/div/div/div/div/p"
+    );
+    game.awayTeam_possession = await fetchDataAndParse(
+      page,
+      "//div[@class='u-spacing-mb-24']/div/div/div/div/p[2]"
+    );
+    game.homeTeam_completionRate = await fetchDataAndParse(
+      page,
+      "//div[@class='u-spacing-pb-24 u-spacing-pt-16 u-width-100'][3]/div/div/figure/figcaption/p/span[2]/span"
+    );
+    game.awayTeam_completionRate = await fetchDataAndParse(
+      page,
+      "//div[@class='u-spacing-pb-24 u-spacing-pt-16 u-width-100'][3]/div/div[2]/figure/figcaption/p/span[2]/span"
+    );
+    // ... and so on for other data fetching and parsing ...
+  } catch (error) {
+    console.log(`Error during data fetching and parsing: ${error}`);
+  }
+
+  // Retrieves the all runs, all run metres, post contact metres, linebreaks, tacklebreaks,
+  // average set distance and kick return metres data for both teams
+  const offsenseStats = [];
+  for (let i = 1; i <= 7; i++) {
+    offsenseStats.push([
+      await page
+        .$x(
+          `//div[@id='tabs-match-centre-']/div[6]/section/div/div/div[2]/div/div[${i}]/figure/dl/div/dd`
+        )
+        .then((temp) => temp[0].evaluate((e) => e.innerText)),
+      await page
+        .$x(
+          `//div[@id='tabs-match-centre-']/div[6]/section/div/div/div[2]/div/div[${i}]/figure/dl/div[3]/dd`
+        )
+        .then((temp) => temp[0].evaluate((e) => e.innerText)),
+    ]);
+  }
+
+  [
+    [game.homeTeam_allRuns, game.awayTeam_allRuns],
+    [game.homeTeam_allRunMetres, game.awayTeam_allRunMetres],
+    [game.homeTeam_postContactMetres, game.awayTeam_postContactMetres],
+    [game.homeTeam_linebreaks, game.awayTeam_linebreaks],
+    [game.homeTeam_tacklebreaks, game.awayTeam_tacklebreaks],
+    [game.homeTeam_avgSetDist, game.awayTeam_avgSetDist],
+    [game.homeTeam_kickReturnMetres, game.awayTeam_kickReturnMetres],
+  ] = offsenseStats;
+
+  game.homeTeam_avgPTBSpeed = await page
+    .$x(
+      "//div[@id='tabs-match-centre-']/div[6]/section/div/div/div[2]/div/div[8]/div/div/figure/figcaption/p/span[2]/span"
+    )
+    .then((temp) => temp[0].evaluate((e) => e.innerText));
+
+  game.awayTeam_avgPTBSpeed = await page
+    .$x(
+      "//div[@id='tabs-match-centre-']/div[6]/section/div/div/div[2]/div/div[8]/div/div[2]/figure/figcaption/p/span[2]/span"
+    )
+    .then((temp) => temp[0].evaluate((e) => e.innerText));
+
+  // Retrieves the offloads, receipts, total passes and dummy passes data for both teams
+  const passingStats = [];
+  for (let i = 1; i <= 4; i++) {
+    passingStats.push([
+      await page
+        .$x(
+          `//div[@id='tabs-match-centre-']/div[6]/section/div/div/div[3]/div/div[${i}]/figure/dl/div/dd`
+        )
+        .then((temp) => temp[0].evaluate((e) => e.innerText)),
+      await page
+        .$x(
+          `//div[@id='tabs-match-centre-']/div[6]/section/div/div/div[3]/div/div[${i}]/figure/dl/div[3]/dd`
+        )
+        .then((temp) => temp[0].evaluate((e) => e.innerText)),
+    ]);
+  }
+
+  [
+    [game.homeTeam_offloads, game.awayTeam_offloads],
+    [game.homeTeam_receipts, game.awayTeam_receipts],
+    [game.homeTeam_totalPasses, game.awayTeam_totalPasses],
+    [game.homeTeam_dummyPasses, game.awayTeam_dummyPasses],
+  ] = passingStats;
+
+  // Retrieves the kicks, kicking metres and forced dropouts data for both teams
+  const kickingStats = [];
+  for (let i = 1; i <= 3; i++) {
+    kickingStats.push([
+      await page
+        .$x(
+          `//div[@id='tabs-match-centre-']/div[6]/section/div/div/div[4]/div/div[${i}]/figure/dl/div/dd`
+        )
+        .then((temp) => temp[0].evaluate((e) => e.innerText)),
+      await page
+        .$x(
+          `//div[@id='tabs-match-centre-']/div[6]/section/div/div/div[4]/div/div[${i}]/figure/dl/div[3]/dd`
+        )
+        .then((temp) => temp[0].evaluate((e) => e.innerText)),
+    ]);
+  }
+
+  [
+    [game.homeTeam_kicks, game.awayTeam_kicks],
+    [game.homeTeam_kickingMetres, game.awayTeam_kickingMetres],
+    [game.homeTeam_forcedDropouts, game.awayTeam_forcedDropouts],
+  ] = kickingStats;
+
+  // Retrieves the tackles made, missed tackles, intercepts, ineffective tackles data for both teams
+  game.homeTeam_tackleEfficieny = await page
+    .$x(
+      "//div[@id='tabs-match-centre-']/div[6]/section/div/div/div[5]/div/div[1]/div/div/figure/figcaption/p/span/span"
+    )
+    .then((temp) => temp[0].evaluate((e) => e.innerText));
+
+  game.awayTeam_tackleEfficieny = await page
+    .$x(
+      "//div[@id='tabs-match-centre-']/div[6]/section/div/div/div[5]/div/div[1]/div/div[2]/figure/figcaption/p/span/span"
+    )
+    .then((temp) => temp[0].evaluate((e) => e.innerText));
+
+  const defensiveStats = [];
+  for (let i = 2; i <= 5; i++) {
+    defensiveStats.push([
+      await page
+        .$x(
+          `//div[@id='tabs-match-centre-']/div[6]/section/div/div/div[5]/div/div[${i}]/figure/dl/div/dd`
+        )
+        .then((temp) => temp[0].evaluate((e) => e.innerText)),
+      await page
+        .$x(
+          `//div[@id='tabs-match-centre-']/div[6]/section/div/div/div[5]/div/div[${i}]/figure/dl/div[3]/dd`
+        )
+        .then((temp) => temp[0].evaluate((e) => e.innerText)),
+    ]);
+  }
+
+  [
+    [game.homeTeam_tacklesMade, game.awayTeam_tacklesMade],
+    [game.homeTeam_missedTackles, game.awayTeam_missedTackles],
+    [game.homeTeam_intercepts, game.awayTeam_intercepts],
+    [game.homeTeam_ineffectiveTackles, game.awayTeam_ineffectiveTackles],
+  ] = defensiveStats;
+
+  // Retrieves the error and penalties conceded data for both teams
+  const NegativePlayStats = [];
+  for (let i = 1; i <= 2; i++) {
+    NegativePlayStats.push([
+      await page
+        .$x(
+          `//div[@id='tabs-match-centre-']/div[6]/section/div/div/div[6]/div/div[${i}]/figure/dl/div/dd`
+        )
+        .then((temp) => temp[0].evaluate((e) => e.innerText)),
+      await page
+        .$x(
+          `//div[@id='tabs-match-centre-']/div[6]/section/div/div/div[6]/div/div[${i}]/figure/dl/div[3]/dd`
+        )
+        .then((temp) => temp[0].evaluate((e) => e.innerText)),
+    ]);
+  }
+
+  [
+    [game.homeTeam_errors, game.awayTeam_errors],
+    [game.homeTeam_penaltiesConceded, game.awayTeam_penaltiesConceded],
+  ] = NegativePlayStats;
+
+  await page.close();
+  return game;
+}
+
+async function fetchDataAndParse(page, xpath) {
+  try {
+    await page.waitForXPath(xpath);
+    const element = await page.$x(xpath);
+    return element[0].evaluate((e) => e.innerText.split("%")[0]);
+  } catch (error) {
+    console.log(`Error fetching data from ${xpath}: ${error}`);
+    return null;
+  }
+}
+
+getData();
+
+
+(((((((((((((((((((((((((((((((((((((())))))))))))))))))))))))))))))))))))))
+
+const { default: puppeteer } = require("puppeteer");
+const jsonData = require("./drawTeamMatchupData.json");
+class Dataset {
+  constructor() {
+    this.conditions = "";
+    this.homeTeam = "";
+    this.homeTeam_FT_score = "";
+    this.homeTeam_HT_score = "";
+    this.homeTeam_tryscorers = [];
+    this.homeTeam_possession = "";
+    this.homeTeam_completionRate = "";
+    this.homeTeam_allRuns = "";
+    this.homeTeam_allRunMetres = "";
+    this.homeTeam_postContactMetres = "";
+    this.homeTeam_linebreaks = "";
+    this.homeTeam_tacklebreaks = "";
+    this.homeTeam_avgSetDist = "";
+    this.homeTeam_kickReturnMetres = "";
+    this.homeTeam_offloads = "";
+    this.homeTeam_receipts = "";
+    this.homeTeam_totalPasses = "";
+    this.homeTeam_dummyPasses = "";
+    this.homeTeam_kicks = "";
+    this.homeTeam_kickingMetres = "";
+    this.homeTeam_kickDefusals = "";
+    this.homeTeam_forcedDropouts = "";
+    this.homeTeam_avgPTBSpeed = "";
+    this.homeTeam_tackleEfficieny = "";
+    this.homeTeam_tacklesMade = "";
+    this.homeTeam_missedTackles = "";
+    this.homeTeam_intercepts = "";
+    this.homeTeam_ineffectiveTackles = "";
+    this.homeTeam_errors = "";
+    this.homeTeam_penaltiesConceded = "";
+    this.awayTeam = "";
+    this.awayTeam_FT_score = "";
+    this.awayTeam_HT_score = "";
+    this.awayTeam_tryscorers = [];
+    this.awayTeam_possession = "";
+    this.awayTeam_completionRate = "";
+    this.awayTeam_allRuns = "";
+    this.awayTeam_allRunMetres = "";
+    this.awayTeam_postContactMetres = "";
+    this.awayTeam_linebreaks = "";
+    this.awayTeam_tacklebreaks = "";
+    this.awayTeam_avgSetDist = "";
+    this.awayTeam_kickReturnMetres = "";
+    this.awayTeam_offloads = "";
+    this.awayTeam_receipts = "";
+    this.awayTeam_totalPasses = "";
+    this.awayTeam_dummyPasses = "";
+    this.awayTeam_kicks = "";
+    this.awayTeam_kickingMetres = "";
+    this.awayTeam_kickDefusals = "";
+    this.awayTeam_forcedDropouts = "";
+    this.awayTeam_avgPTBSpeed = "";
+    this.awayTeam_tackleEfficieny = "";
+    this.awayTeam_tacklesMade = "";
+    this.awayTeam_missedTackles = "";
+    this.awayTeam_intercepts = "";
+    this.awayTeam_ineffectiveTackles = "";
+    this.awayTeam_errors = "";
+    this.awayTeam_penaltiesConceded = "";
+  }
+}
+
+let browser;
+async function main() {
+  browser = await puppeteer.launch();
+  console.log(await getGameData(2019, 17, jsonData[2019][17], browser));
+  await browser.close();
+}
+
+main();
+
+async function getGameData(season, round, roundMatchups, browser) {
+  const page = await browser.newPage();
+  const results = [];
+
+  for (let i = 0; i < roundMatchups.length; i++) {
+    let homeTeam = roundMatchups[i][0].replace(/\s/g, "-");
+    let awayTeam = roundMatchups[i][1].replace(/\s/g, "-");
+
+    await page.goto(
+      `https://www.nrl.com/draw/nrl-premiership/${season}/round-${round}/${homeTeam}-v-${awayTeam}/`
+    );
+
+    const gameInfo = new Dataset();
+
+    gameInfo.homeTeam = homeTeam;
+    gameInfo.awayTeam = awayTeam;
+
+    [
+      gameInfo.homeTeam_FT_score,
+      gameInfo.awayTeam_FT_score,
+      gameInfo.conditions,
+    ] = await page.evaluate(() => {
+      const HFTS = document
+        .querySelector(".match-team__score--home")
+        .innerText.split("\n")[1];
+      const AFTS = document
+        .querySelector(".match-team__score--away")
+        .innerText.split("\n")[1];
+      const COND = document.querySelector(
+        ".match-weather__text span"
+      ).innerText;
+      return [HFTS, AFTS, COND];
+    });
+
+    const HTS_xpath =
+      "//ul[@class='match-centre-summary-group__list match-centre-summary-group__list--home']";
+    await page.waitForXPath(HTS_xpath);
+    const HTS_Html = await page.$x(HTS_xpath);
+    const HTS = await HTS_Html[0].evaluate((e) => e.innerText.split("\n"));
+    !!HTS[0]
+      ? (gameInfo.homeTeam_tryscorers = HTS)
+      : (gameInfo.homeTeam_tryscorers = null);
+
+    const ATS_xpath =
+      "//ul[@class='match-centre-summary-group__list match-centre-summary-group__list--away']";
+    await page.waitForXPath(ATS_xpath);
+    const ATS_Html = await page.$x(ATS_xpath);
+    const ATS = await ATS_Html[0].evaluate((e) => e.innerText.split("\n"));
+    !!ATS[0]
+      ? (gameInfo.awayTeam_tryscorers = ATS)
+      : (gameInfo.awayTeam_tryscorers = null);
+
+    [gameInfo.homeTeam_HT_score, gameInfo.awayTeam_HT_score] =
+      await page.evaluate(() => {
+        const match = document.querySelectorAll(".match-centre-summary-group");
+        return [
+          match[match.length - 1].querySelectorAll(
+            ".match-centre-summary-group__value"
+          )[0].innerText,
+          match[match.length - 1].querySelectorAll(
+            ".match-centre-summary-group__value"
+          )[1].innerText,
+        ];
+      });
+
+    const dataOptionsXpath =
+      "//div[@class='tabs__trigger-scroller tabs__list-container u-hide-scrollbar u-momentum-scrolling u-scroll-behaviour-smooth o-rounded-box o-rounded-box--sharp-until-600 o-shadowed-ui-control']/ul/li[4]/a";
+    await page.waitForXPath(dataOptionsXpath);
+    const dataOptionsBtn = await page.$x(dataOptionsXpath);
+    await dataOptionsBtn[0].click();
+
+    gameInfo.homeTeam_possession = await page.evaluate(() => {
+      return document
+        .querySelector(".match-centre-card-donut__value--home")
+        .innerText.split("%")[0];
+    });
+
+    gameInfo.awayTeam_possession = await page.evaluate(() => {
+      return document
+        .querySelector(".match-centre-card-donut__value--away")
+        .innerText.split("%")[0];
+    });
+
+    const offensiveData = await page.evaluate(() => {
+      const offsenseHtml = document.querySelectorAll(".u-spacing-mb-24")[1];
+      const offsensiveHtmlData = offsenseHtml.querySelectorAll(
+        ".u-spacing-pb-24.u-spacing-pt-16.u-width-100 dd"
+      );
+
+      const data = [];
+
+      for (const stat of offsensiveHtmlData) {
+        data.push(stat.innerText);
+      }
+
+      return data;
+    });
+
+    if (offensiveData.length === 14) {
+      [
+        gameInfo.homeTeam_allRuns,
+        gameInfo.awayTeam_allRuns,
+        gameInfo.homeTeam_allRunMetres,
+        gameInfo.awayTeam_allRunMetres,
+        gameInfo.homeTeam_postContactMetres,
+        gameInfo.awayTeam_postContactMetres,
+        gameInfo.homeTeam_linebreaks,
+        gameInfo.awayTeam_linebreaks,
+        gameInfo.homeTeam_tacklebreaks,
+        gameInfo.awayTeam_tacklebreaks,
+        gameInfo.homeTeam_avgSetDist,
+        gameInfo.awayTeam_avgSetDist,
+        gameInfo.homeTeam_kickReturnMetres,
+        gameInfo.awayTeam_kickReturnMetres,
+      ] = offensiveData;
+    } else {
+      [
+        gameInfo.homeTeam_allRuns,
+        gameInfo.awayTeam_allRuns,
+        gameInfo.homeTeam_allRunMetres,
+        gameInfo.awayTeam_allRunMetres,
+        gameInfo.homeTeam_postContactMetres,
+        gameInfo.awayTeam_postContactMetres,
+        gameInfo.homeTeam_linebreaks,
+        gameInfo.awayTeam_linebreaks,
+        gameInfo.homeTeam_tacklebreaks,
+        gameInfo.awayTeam_tacklebreaks,
+        gameInfo.homeTeam_kickReturnMetres,
+        gameInfo.awayTeam_kickReturnMetres,
+      ] = offensiveData;
+
+      gameInfo.homeTeam_avgSetDist = gameInfo.awayTeam_avgSetDist = null;
+    }
+
+    const defensiveData = await page.evaluate(() => {
+      const defHtml = document.querySelectorAll(".u-spacing-mb-24")[4];
+      const defHtmlData = defHtml.querySelectorAll("dd");
+
+      const data = [];
+      for (let i = 0; i < defHtmlData.length; i++) {
+        data.push(defHtmlData[i].innerText);
+      }
+      return data;
+    });
+
+    if (defensiveData.length === 8) {
+      [
+        gameInfo.homeTeam_tacklesMade,
+        gameInfo.awayTeam_tacklesMade,
+        gameInfo.homeTeam_missedTackles,
+        gameInfo.awayTeam_missedTackles,
+        gameInfo.homeTeam_intercepts,
+        gameInfo.awayTeam_intercepts,
+        gameInfo.homeTeam_ineffectiveTackles,
+        gameInfo.awayTeam_ineffectiveTackles,
+      ] = defensiveData;
+    } else {
+      [
+        gameInfo.homeTeam_tacklesMade,
+        gameInfo.awayTeam_tacklesMade,
+        gameInfo.homeTeam_missedTackles,
+        gameInfo.awayTeam_missedTackles,
+        gameInfo.homeTeam_ineffectiveTackles,
+        gameInfo.awayTeam_ineffectiveTackles,
+      ] = defensiveData;
+
+      gameInfo.homeTeam_intercepts = gameInfo.awayTeam_intercepts = null;
+    }
+
+    const passingStats = [];
+    for (let i = 1; i <= 4; i++) {
+      passingStats.push([
+        await page
+          .$x(
+            `//div[@id='tabs-match-centre-']/div[6]/section/div/div/div[3]/div/div[${i}]/figure/dl/div/dd`
+          )
+          .then((temp) => temp[0].evaluate((e) => e.innerText)),
+        await page
+          .$x(
+            `//div[@id='tabs-match-centre-']/div[6]/section/div/div/div[3]/div/div[${i}]/figure/dl/div[3]/dd`
+          )
+          .then((temp) => temp[0].evaluate((e) => e.innerText)),
+      ]);
+    }
+
+    [
+      [gameInfo.homeTeam_offloads, gameInfo.awayTeam_offloads],
+      [gameInfo.homeTeam_receipts, gameInfo.awayTeam_receipts],
+      [gameInfo.homeTeam_totalPasses, gameInfo.awayTeam_totalPasses],
+      [gameInfo.homeTeam_dummyPasses, gameInfo.awayTeam_dummyPasses],
+    ] = passingStats;
+
+    const kickingStats = [];
+    for (let i = 1; i <= 3; i++) {
+      kickingStats.push([
+        await page
+          .$x(
+            `//div[@id='tabs-match-centre-']/div[6]/section/div/div/div[4]/div/div[${i}]/figure/dl/div/dd`
+          )
+          .then((temp) => temp[0].evaluate((e) => e.innerText)),
+        await page
+          .$x(
+            `//div[@id='tabs-match-centre-']/div[6]/section/div/div/div[4]/div/div[${i}]/figure/dl/div[3]/dd`
+          )
+          .then((temp) => temp[0].evaluate((e) => e.innerText)),
+      ]);
+    }
+
+    [
+      [gameInfo.homeTeam_kicks, gameInfo.awayTeam_kicks],
+      [gameInfo.homeTeam_kickingMetres, gameInfo.awayTeam_kickingMetres],
+      [gameInfo.homeTeam_forcedDropouts, gameInfo.awayTeam_forcedDropouts],
+    ] = kickingStats;
+
+    const miscellaneousStats = await page.evaluate(() => {
+      const stats_html = document.querySelectorAll(
+        ".u-spacing-pb-24.u-spacing-pt-16.u-width-100 figcaption p span + span > span"
+      );
+
+      const data = [];
+      for (const stat of stats_html) {
+        data.push(stat.innerText);
+      }
+
+      return data;
+    });
+
+    if (miscellaneousStats.length === 11) {
+      gameInfo.homeTeam_completionRate = miscellaneousStats[1];
+      gameInfo.awayTeam_completionRate = miscellaneousStats[2];
+      gameInfo.homeTeam_avgPTBSpeed = miscellaneousStats[3];
+      gameInfo.awayTeam_avgPTBSpeed = miscellaneousStats[5];
+      gameInfo.homeTeam_kickDefusals = miscellaneousStats[7];
+      gameInfo.awayTeam_kickDefusals = miscellaneousStats[8];
+      gameInfo.homeTeam_tackleEfficieny = miscellaneousStats[9];
+      gameInfo.awayTeam_tackleEfficieny = miscellaneousStats[10];
+    } else {
+      gameInfo.homeTeam_avgPTBSpeed = miscellaneousStats[1];
+      gameInfo.awayTeam_avgPTBSpeed = miscellaneousStats[3];
+      gameInfo.homeTeam_kickDefusals = miscellaneousStats[5];
+      gameInfo.awayTeam_kickDefusals = miscellaneousStats[6];
+      gameInfo.homeTeam_tackleEfficieny = miscellaneousStats[7];
+      gameInfo.awayTeam_tackleEfficieny = miscellaneousStats[8];
+    }
+
+    const NegativePlayStats = [];
+    for (let i = 1; i <= 2; i++) {
+      NegativePlayStats.push([
+        await page
+          .$x(
+            `//div[@id='tabs-match-centre-']/div[6]/section/div/div/div[6]/div/div[${i}]/figure/dl/div/dd`
+          )
+          .then((temp) => temp[0].evaluate((e) => e.innerText)),
+        await page
+          .$x(
+            `//div[@id='tabs-match-centre-']/div[6]/section/div/div/div[6]/div/div[${i}]/figure/dl/div[3]/dd`
+          )
+          .then((temp) => temp[0].evaluate((e) => e.innerText)),
+      ]);
+    }
+
+    [
+      [gameInfo.homeTeam_errors, gameInfo.awayTeam_errors],
+      [
+        gameInfo.homeTeam_penaltiesConceded,
+        gameInfo.awayTeam_penaltiesConceded,
+      ],
+    ] = NegativePlayStats;
+
+    results.push(gameInfo);
+  }
+
+  await page.close();
+
+  return results;
+}

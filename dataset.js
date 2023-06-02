@@ -1,0 +1,73 @@
+class Dataset {
+  constructor() {
+    this.conditions = null;
+    this.homeTeam = null;
+    this.homeTeam_FT_score = null;
+    this.homeTeam_HT_score = null;
+    this.homeTeam_tryscorers = [];
+    this.homeTeam_possession = null;
+    this.homeTeam_completionRate = null;
+    this.homeTeam_allRuns = null;
+    this.homeTeam_allRunMetres = null;
+    this.homeTeam_postContactMetres = null;
+    this.homeTeam_linebreaks = null;
+    this.homeTeam_tacklebreaks = null;
+    this.homeTeam_avgSetDist = null;
+    this.homeTeam_kickReturnMetres = null;
+    this.homeTeam_offloads = null;
+    this.homeTeam_receipts = null;
+    this.homeTeam_totalPasses = null;
+    this.homeTeam_dummyPasses = null;
+    this.homeTeam_kicks = null;
+    this.homeTeam_kickingMetres = null;
+    this.homeTeam_kickDefusals = null;
+    this.homeTeam_forcedDropouts = null;
+    this.homeTeam_bombs = null;
+    this.homeTeam_grubbers = null;
+    this.homeTeam_420 = null;
+    this.homeTeam_avgPTBSpeed = null;
+    this.homeTeam_tackleEfficieny = null;
+    this.homeTeam_tacklesMade = null;
+    this.homeTeam_missedTackles = null;
+    this.homeTeam_intercepts = null;
+    this.homeTeam_ineffectiveTackles = null;
+    this.homeTeam_errors = null;
+    this.homeTeam_penaltiesConceded = null;
+    this.awayTeam = null;
+    this.awayTeam_FT_score = null;
+    this.awayTeam_HT_score = null;
+    this.awayTeam_tryscorers = [];
+    this.awayTeam_possession = null;
+    this.awayTeam_completionRate = null;
+    this.awayTeam_allRuns = null;
+    this.awayTeam_allRunMetres = null;
+    this.awayTeam_postContactMetres = null;
+    this.awayTeam_linebreaks = null;
+    this.awayTeam_tacklebreaks = null;
+    this.awayTeam_avgSetDist = null;
+    this.awayTeam_kickReturnMetres = null;
+    this.awayTeam_offloads = null;
+    this.awayTeam_receipts = null;
+    this.awayTeam_totalPasses = null;
+    this.awayTeam_dummyPasses = null;
+    this.awayTeam_kicks = null;
+    this.awayTeam_kickingMetres = null;
+    this.awayTeam_kickDefusals = null;
+    this.awayTeam_forcedDropouts = null;
+    this.awayTeam_bombs = null;
+    this.awayTeam_grubbers = null;
+    this.awayTeam_420 = null;
+    this.awayTeam_avgPTBSpeed = null;
+    this.awayTeam_tackleEfficieny = null;
+    this.awayTeam_tacklesMade = null;
+    this.awayTeam_missedTackles = null;
+    this.awayTeam_intercepts = null;
+    this.awayTeam_ineffectiveTackles = null;
+    this.awayTeam_errors = null;
+    this.awayTeam_penaltiesConceded = null;
+  }
+}
+
+module.exports = {
+  Dataset: Dataset,
+};

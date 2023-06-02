@@ -1,0 +1,19 @@
+{
+  "name": "nrl",
+  "version": "1.0.0",
+  "description": "",
+  "main": "parsing.js",
+  "scripts": {
+    "start": "node index",
+    "test": "jest"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "puppeteer": "^20.1.0"
+  },
+  "devDependencies": {
+    "jest": "^29.5.0"
+  }
+}
