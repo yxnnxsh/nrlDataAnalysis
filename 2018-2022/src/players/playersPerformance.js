@@ -2,36 +2,46 @@
 
 const puppeteer = require("puppeteer");
 const fs = require("fs");
-const database = require("./playersPerformance_dataStructure.js");
+const {
+  scrappingDetails,
+  createDatabase,
+} = require("/Users/yannihaddad/Desktop/nrl/dataStructures/playersPerformanceDataset");
 
-async function getData() {
-  const figures = JSON.parse(database.dataJSON);
-  for (const yearBlock of figures) {
-    for (const statBlock of yearBlock.dataset) {
-      statBlock.data = [
-        ...(await ExtractingData(yearBlock.year, statBlock.API_endpoint)),
-      ];
+let browser;
+async function main() {
+  browser = await puppeteer.launch();
+  const data = createDatabase();
+
+  for (let season = 2018; season < new Date().getFullYear(); season++) {
+    for (stat of scrappingDetails) {
+      data[season][stat.statLabel] = await ExtractingData(
+        season,
+        stat.API_endpoint
+      );
+
+      console.log(data[season]);
     }
   }
 
+  browser.close();
+
   fs.writeFile(
-    "./historicalPlayerData.json",
-    JSON.stringify(figures),
+    "/Users/yannihaddad/Desktop/nrl/data/playersPerformanceData.json",
+    JSON.stringify(data),
     (err) => {
       if (err) {
         console.log(err);
       } else {
-        console.log("Historical player data successfully transferred");
+        console.log("2018-2022 player data successfully transferred");
       }
     }
   );
 }
 
-async function ExtractingData(year, API_endpoint) {
-  const browser = await puppeteer.launch();
+async function ExtractingData(season, API_endpoint) {
   const page = await browser.newPage();
   await page.goto(
-    `https://www.nrl.com/stats/players/?competition=111&season=${year}&stat=${API_endpoint}`
+    `https://www.nrl.com/stats/players/?competition=111&season=${season}&stat=${API_endpoint}`
   );
 
   const avgToggleXpath =
@@ -51,9 +61,8 @@ async function ExtractingData(year, API_endpoint) {
     }))
   );
 
-  // closes the browser
-  await browser.close();
+  await page.close();
 
   return data.slice(0, data.length / 2);
 }
-getData();
+main();

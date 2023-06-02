@@ -2,7 +2,7 @@ const { default: puppeteer } = require("puppeteer");
 const fs = require("fs");
 
 const data = {};
-for (let season = 2018; season < 2023; season++) {
+for (let season = 2018; season < new Date().getFullYear(); season++) {
   data[season] = {};
   let round;
   for (round = 1; season === 2020 ? round <= 24 : round <= 29; round++) {
@@ -14,7 +14,7 @@ let browser;
 
 async function main() {
   browser = await puppeteer.launch();
-  for (let season = 2018; season < 2023; season++) {
+  for (let season = 2018; season < new Date().getFullYear(); season++) {
     for (let round = 1; round <= 29; round++) {
       let numOfGames;
 
@@ -95,9 +95,3 @@ function parseTeams(matchupStr) {
   const { homeTeam, awayTeam } = match.groups;
   return [homeTeam, awayTeam];
 }
-
-module.exports = {
-  main: main,
-  getTeams: getTeams,
-  parseTeams: parseTeams,
-};

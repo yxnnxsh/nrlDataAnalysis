@@ -2,176 +2,163 @@
 const puppeteer = require("puppeteer");
 const fs = require("fs");
 
-const dataset = [
+const scrappingDetails = [
   {
-    stat: "Points",
+    statLabel: "Points",
     API_endpoint: 76,
-    data: [],
   },
   {
-    stat: "Goals",
+    statLabel: "Goals",
     API_endpoint: 1000034,
-    data: [],
   },
   {
-    stat: "Possession",
+    statLabel: "Possession",
     API_endpoint: 9,
-    data: [],
   },
   {
-    stat: "Supports",
+    statLabel: "Supports",
     API_endpoint: 1000015,
-    data: [],
   },
   {
-    stat: "Linebreaks",
+    statLabel: "Linebreaks",
     API_endpoint: 30,
-    data: [],
   },
   {
-    stat: "Tackle Breaks",
+    statLabel: "Tackle Breaks",
     API_endpoint: 29,
-    data: [],
   },
   {
-    stat: "All Run Metres",
+    statLabel: "All Run Metres",
     API_endpoint: 1000037,
-    data: [],
   },
   {
-    stat: "Kick Return Metres",
+    statLabel: "Kick Return Metres",
     API_endpoint: 78,
-    data: [],
   },
   {
-    stat: "Offloads",
+    statLabel: "Offloads",
     API_endpoint: 28,
-    data: [],
   },
   {
-    stat: "Line Break Assists",
+    statLabel: "Line Break Assists",
     API_endpoint: 31,
-    data: [],
   },
   {
-    stat: "Charge Downs",
+    statLabel: "Charge Downs",
     API_endpoint: 1000000,
-    data: [],
   },
   {
-    stat: "Tackles",
+    statLabel: "Tackles",
     API_endpoint: 3,
-    data: [],
   },
   {
-    stat: "Total Kicks",
+    statLabel: "Total Kicks",
     API_endpoint: 33,
-    data: [],
   },
   {
-    stat: "Conversion",
+    statLabel: "Conversion",
     API_endpoint: 1000209,
-    data: [],
   },
   {
-    stat: "Errors",
+    statLabel: "Errors",
     API_endpoint: 37,
-    data: [],
   },
   {
-    stat: "Penalties Conceded",
+    statLabel: "Penalties Conceded",
     API_endpoint: 1000026,
-    data: [],
   },
   {
-    stat: "Tries",
+    statLabel: "Tries",
     API_endpoint: 38,
-    data: [],
   },
   {
-    stat: "Field Goals",
+    statLabel: "Field Goals",
     API_endpoint: 69,
-    data: [],
   },
   {
-    stat: "Set Completion",
+    statLabel: "Set Completion",
     API_endpoint: 1000210,
-    data: [],
   },
   {
-    stat: "Line Engaged",
+    statLabel: "Line Engaged",
     API_endpoint: 1000025,
-    data: [],
   },
   {
-    stat: "Post Contact Metres",
+    statLabel: "Post Contact Metres",
     API_endpoint: 1000112,
-    data: [],
   },
   {
-    stat: "Decoy Runs",
+    statLabel: "Decoy Runs",
     API_endpoint: 1000002,
-    data: [],
   },
   {
-    stat: "All Runs",
+    statLabel: "All Runs",
     API_endpoint: 1000038,
-    data: [],
   },
   {
-    stat: "Dummy Half Runs",
+    statLabel: "Dummy Half Runs",
     API_endpoint: 81,
-    data: [],
   },
   {
-    stat: "Try Assists",
+    statLabel: "Try Assists",
     API_endpoint: 35,
-    data: [],
   },
   {
-    stat: "All Receipts",
+    statLabel: "All Receipts",
     API_endpoint: 1000028,
-    data: [],
   },
   {
-    stat: "Missed Tackles",
+    statLabel: "Missed Tackles",
     API_endpoint: 4,
-    data: [],
   },
 
   {
-    stat: "Total Kick Metres",
+    statLabel: "Total Kick Metres",
     API_endpoint: 32,
-    data: [],
   },
 
   {
-    stat: "Ineffective Tackles",
+    statLabel: "Ineffective Tackles",
     API_endpoint: 1000003,
-    data: [],
   },
   {
-    stat: "Handling Errors",
+    statLabel: "Handling Errors",
     API_endpoint: 1000079,
-    data: [],
   },
 ];
+
+function createDatabase() {
+  const data = {};
+  const season = new Date().getFullYear();
+  data[season] = {};
+  for (stat of scrappingDetails) {
+    data[season][stat.statLabel] = [];
+  }
+
+  return data;
+}
 
 let browser;
 async function main() {
   browser = await puppeteer.launch();
-  for (const statBlock of dataset) {
-    statBlock.data = [...(await ExtractingData(statBlock.API_endpoint))];
+  const data = createDatabase();
+
+  for (stat of scrappingDetails) {
+    data[2023][stat.statLabel] = [...(await ExtractingData(stat.API_endpoint))];
   }
   await browser.close();
 
-  fs.writeFile("./2023TeamData.json", JSON.stringify(data), (err) => {
-    if (err) {
-      console.log(err);
-    } else {
-      console.log("2023 team data successfully transferred");
+  fs.writeFile(
+    "/Users/yannihaddad/Desktop/nrl/data/2023teamPerformanceData.json",
+    JSON.stringify(data),
+    (err) => {
+      if (err) {
+        console.log(err);
+      } else {
+        console.log("2023 team data successfully transferred");
+      }
     }
-  });
+  );
 }
 
 async function ExtractingData(API_endpoint) {
@@ -198,7 +185,7 @@ async function ExtractingData(API_endpoint) {
   // closes the browser
   await page.close();
 
-  return data.slice(0, 17);
+  return data.slice(0, data.length / 2);
 }
 
-getData();
+main();

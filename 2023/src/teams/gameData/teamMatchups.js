@@ -11,7 +11,12 @@ async function main() {
   for (let round = 1; round < 14; round++) {
     let numOfGames;
     round !== 13 ? (numOfGames = 8) : (numOfGames = 5);
-    data[2023][round] = await getTeams(2023, round, numOfGames, browser);
+    data[2023][round] = await getTeams(
+      new Date().getFullYear(),
+      round,
+      numOfGames,
+      browser
+    );
   }
   await browser.close();
 
@@ -76,9 +81,3 @@ function parseTeams(matchupStr) {
   const { homeTeam, awayTeam } = match.groups;
   return [homeTeam, awayTeam];
 }
-
-module.exports = {
-  main: main,
-  getTeams: getTeams,
-  parseTeams: parseTeams,
-};

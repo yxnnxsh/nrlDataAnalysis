@@ -7,29 +7,28 @@ let browser;
 
 async function main() {
   const data = [];
-  const season = 2023;
   browser = await puppeteer.launch();
+  for (let season = 2018; season < new Date().getFullYear(); season++) {
+    for (let round = 1; season !== 2020 ? round < 30 : round < 25; round++) {
+      const gameData = await getGameData(
+        season,
+        round,
+        jsonData[season][round],
+        browser
+      );
 
-  for (let round = 1; round < 14; round++) {
-    const gameData = await getGameData(
-      season,
-      round,
-      jsonData[season][round],
-      browser
-    );
+      console.log(gameData);
 
-    console.log(gameData);
-
-    data.push({
-      season,
-      round,
-      gameData,
-    });
+      data.push({
+        season,
+        round,
+        gameData,
+      });
+    }
   }
-
   await browser.close();
 
-  fs.writeFile("gameStatistics.json", JSON.stringify(data), (err) => {
+  fs.writeFile("2018-2023gameStatistics.json", JSON.stringify(data), (err) => {
     if (err) {
       console.log(err);
     } else {
